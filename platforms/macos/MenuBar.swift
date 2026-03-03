@@ -157,16 +157,7 @@ class MenuBarController: NSObject, NSWindowDelegate {
         subtitle.textColor = .secondaryLabelColor
         subtitle.tag = 100 // For in-place updates
 
-        let toggleView = NSHostingView(rootView:
-            Toggle("", isOn: Binding(
-                get: { [weak self] in self?.appState.isEnabled ?? true },
-                set: { [weak self] newValue in
-                    self?.appState.isEnabled = newValue
-                    SoundManager.shared.playToggleSound(enabled: newValue)
-                }
-            ))
-            .toggleStyle(.switch)
-            .labelsHidden())
+        let toggleView = NSHostingView(rootView: MenuBarToggle())
 
         for view in [iconView, titleLabel, subtitle, toggleView] as [NSView] {
             view.translatesAutoresizingMaskIntoConstraints = false
@@ -519,5 +510,25 @@ class MenuBarController: NSObject, NSWindowDelegate {
         }
         pendingRestart = work
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: work)
+    }
+}
+
+// MARK: - Menu Bar Toggle (SwiftUI)
+
+/// Observes AppState so the toggle reflects the actual enabled state.
+/// Uses explicit Binding so sound only plays on direct toggle clicks (not keyboard shortcut or per-app restore).
+struct MenuBarToggle: View {
+    @ObservedObject private var appState = AppState.shared
+
+    var body: some View {
+        Toggle("", isOn: Binding(
+            get: { appState.isEnabled },
+            set: { newValue in
+                appState.isEnabled = newValue
+                SoundManager.shared.playToggleSound(enabled: newValue)
+            }
+        ))
+        .toggleStyle(.switch)
+        .labelsHidden()
     }
 }
